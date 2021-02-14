@@ -26,6 +26,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    aaptOptions {
+        noCompress "tflite"
+        // or noCompress "lite"
+    }
 }
 
 dependencies {
@@ -40,4 +44,5 @@ dependencies {
     implementation 'com.google.mlkit:image-labeling:17.0.2'
     // Implementación de Image Labeling - Custom Models
     implementation 'com.google.mlkit:image-labeling-custom:16.3.1'
+    implementation 'com.google.mlkit:linkfirebase:16.1.0'
 }
