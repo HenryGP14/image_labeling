@@ -82,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } catch (Exception e) {
+            imgContainer.setImageURI(null);
+            imgContainer.setImageResource(R.drawable.ic_launcher_background);
             Toast.makeText(this, "Lo lamento no se a cargado una imagen", Toast.LENGTH_SHORT).show();
         }
     }
