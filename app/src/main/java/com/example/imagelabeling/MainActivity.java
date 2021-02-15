@@ -55,7 +55,10 @@ public class MainActivity extends AppCompatActivity {
                         .setMaxResultCount(5)
                         .build();
     }
-
+    public void click_base_label_real_time(View view){
+        Intent intent = new Intent(this, base_label_real_time_image.class);
+        startActivity(intent);
+    }
     public void selecionar_img(View view) {
         resultConsult.setText(null);
         Intent intent = new Intent();
