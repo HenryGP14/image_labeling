@@ -14,10 +14,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.mlkit.common.model.CustomRemoteModel;
+import com.google.mlkit.common.model.LocalModel;
+import com.google.mlkit.linkfirebase.FirebaseModelSource;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
 import com.google.mlkit.vision.label.ImageLabeling;
+import com.google.mlkit.vision.label.custom.CustomImageLabelerOptions;
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.io.IOException;
@@ -34,12 +38,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         elegir = findViewById(R.id.btnElegir);
         resultConsult = findViewById(R.id.txtConsult);
         imgContainer = findViewById(R.id.imgContainer);
-    }
 
+        LocalModel localModel =
+                new LocalModel.Builder()
+                        .setAssetFilePath("model.tflite")
+                        // or .setAbsoluteFilePath(absolute file path to model file)
+                        // or .setUri(URI to model file)
+                        .build();
+
+        CustomImageLabelerOptions customImageLabelerOptions =
+                new CustomImageLabelerOptions.Builder(localModel)
+                        .setConfidenceThreshold(0.5f)
+                        .setMaxResultCount(5)
+                        .build();
+    }
+    public void click_base_label_real_time(View view){
+        Intent intent = new Intent(this, base_label_real_time_image.class);
+        startActivity(intent);
+    }
     public void selecionar_img(View view) {
         resultConsult.setText(null);
         Intent intent = new Intent();
@@ -58,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
                 InputImage image;
                 try {
                     image = InputImage.fromFilePath(getApplicationContext(), data.getData());
+
                     ImageLabeler labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS);
 
                     labeler.process(image)
@@ -87,4 +107,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Lo lamento no se a cargado una imagen", Toast.LENGTH_SHORT).show();
         }
     }
+
+
 }
