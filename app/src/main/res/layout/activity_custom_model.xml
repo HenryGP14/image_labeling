@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,7 +9,38 @@
     <androidx.camera.view.PreviewView
         android:id="@+id/vistaPrevia"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#2FFFFFFF" />
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/Label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="100dp"
+        android:background="#80FFFFFF"
+        android:padding="5dp"
+        android:text="Label:"
+        android:textColor="@color/black" />
+    <TextView
+        android:id="@+id/Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#80FFFFFF"
+        android:padding="5dp"
+        android:text="Text:"
+        android:textColor="@color/black"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/Label"/>
+    <TextView
+        android:id="@+id/Confidence"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#80FFFFFF"
+        android:padding="5dp"
+        android:text="Confidence:"
+        android:textColor="@color/black"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/Text"/>
 
 </RelativeLayout>

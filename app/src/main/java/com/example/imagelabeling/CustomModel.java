@@ -5,18 +5,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
-import android.media.Image;
 import android.os.Bundle;
-import android.util.Size;
+import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -27,31 +24,43 @@ import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
 import com.google.mlkit.vision.label.ImageLabeling;
 import com.google.mlkit.vision.label.custom.CustomImageLabelerOptions;
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class CustomModel extends AppCompatActivity {
 
-    InputImage inputImage;
-    List<ImageLabel> etiquetasDeImagenes;
+    static InputImage inputImage = null;
     PreviewView vistaPrevia;
     ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     ProcessCameraProvider cameraProvider;
+    Camera camera;
     CameraSelector cameraSelector;
     Preview preview;
+    TextView etiqueta, text, confidence;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_custom_model);
 
+        text = (TextView)findViewById(R.id.Text);
+        etiqueta = (TextView)findViewById(R.id.Label);
+        confidence = (TextView)findViewById(R.id.Confidence);
+
         vistaPrevia = findViewById(R.id.vistaPrevia);
         AnalizadorFotogramas();
     }
 
     public void AnalizadorFotogramas(){
-
+        LocalModel localModel = new LocalModel.Builder().setAssetFilePath("mnasnet_1.3_224_1_metadata_1.tflite").build();
+        CustomImageLabelerOptions etqImagenesPersonaliada = new CustomImageLabelerOptions.Builder(localModel)
+                .setConfidenceThreshold(0.5f)
+                .setMaxResultCount(5)
+                .build();
+        //ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(etqImagenesPersonaliada);
+        ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS);
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         cameraProviderFuture.addListener(()->{
             try {
@@ -61,7 +70,44 @@ public class CustomModel extends AppCompatActivity {
                         .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                         .build();
                 preview.setSurfaceProvider(vistaPrevia.createSurfaceProvider());
-                Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+
+                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                        //.setTargetResolution(new Size(480, 640))
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).setBackgroundExecutor(ContextCompat.getMainExecutor(this))
+                        .build();
+
+                imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), new ImageAnalysis.Analyzer() {
+                    @SuppressLint("UnsafeExperimentalUsageError")
+                    @Override
+                    public void analyze(@NonNull ImageProxy image) {
+                        if(image.getImage() != null){
+                            inputImage = InputImage.fromMediaImage(image.getImage(), image.getImageInfo().getRotationDegrees());
+                            //Ejecute el etiquetador de imagenes
+                            etiquetadorImagenes.process(inputImage).addOnSuccessListener(new OnSuccessListener<List<ImageLabel>>() {
+                                @Override
+                                public void onSuccess(List<ImageLabel> imageLabels) {
+                                    /*etiqueta.setText("Label: " + imageLabels.get(0).getIndex());
+                                    confidence.setText("Confidence: " + imageLabels.get(0).getConfidence());
+                                    text.setText("Text: " + imageLabels.get(0).getText());*/
+                                    for (ImageLabel label : imageLabels){
+                                        text.setText("Text: " + label.getText());
+                                        confidence.setText("Confidence: " + label.getConfidence());
+                                        etiqueta.setText("Label: " + label.getIndex());
+                                    }
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    System.out.println("La tarea falló con excepciones: " + e.getMessage() + ", Causado:" + e.getCause().toString());
+                                }
+                            });
+                        }
+                        else
+                            System.out.println("############# Parece que no se está capturando la imagen");
+                        //image.close();
+                    }
+                });
+                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
             }
             catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
@@ -69,106 +115,12 @@ public class CustomModel extends AppCompatActivity {
             }
         }, ContextCompat.getMainExecutor(this));
 
-        LocalModel localModel = new LocalModel.Builder().setAssetFilePath("mnasnet_1.3_224_1_metadata_1.tflite").build();
-        CustomImageLabelerOptions etqImagenesPersonaliada = new CustomImageLabelerOptions.Builder(localModel)
-                .setConfidenceThreshold(0.5f)
-                .setMaxResultCount(5)
-                .build();
-        ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(etqImagenesPersonaliada);
+        /*Nota: si utiliza un modelo TensorFlow Lite que es incompatible con ML Kit, obtendrá una MlKitException con el código de
+        error MlKitException-INVALID_ARGUMENT y algunos detalles sobre por qué no es compatible. Consulte Requisitos de compatibilidad
+        de modelos personalizados para obtener más información.
 
-        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                .setTargetResolution(new Size(1280, 720))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build();
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), new ImageAnalysis.Analyzer() {
-            @SuppressLint("UnsafeExperimentalUsageError")
-            @Override
-            public void analyze(@NonNull ImageProxy image) {
-                inputImage = InputImage.fromMediaImage(image.getImage(), image.getImageInfo().getRotationDegrees());
-                image.close();
-            }
-        });
-
-        /*etiquetadorImagenes.process(inputImage).addOnSuccessListener(new OnSuccessListener<List<ImageLabel>>() {
-            @Override
-            public void onSuccess(List<ImageLabel> imageLabels) {
-                System.out.println("Tarea completada correctamente");
-                etiquetasDeImagenes = imageLabels;
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                System.out.println("La tarea falló con excepciones");
-            }
-        });*/
-
-        //Camera camera = cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, imageAnalysis, preview);
-    }
-    public void PrimerMetodo(){
-        //Cargue el modelo
-        LocalModel localModel = new LocalModel.Builder().setAssetFilePath("mnasnet_1.3_224_1_metadata_1.tflite").build();
-
-        //Configure el etiquetador de imágenes
-        CustomImageLabelerOptions etqImagenesPersonaliada = new CustomImageLabelerOptions.Builder(localModel)
-                .setConfidenceThreshold(0.5f)
-                .setMaxResultCount(5)
-                .build();
-
-        ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(etqImagenesPersonaliada);
-
-        //Prepare la imagen de entrada
-        /*class AnalizadorFotograma implements ImageAnalysis.Analyzer{
-            @Override
-            public void analyze(@NonNull ImageProxy imageProxy) {
-                @SuppressLint("UnsafeExperimentalUsageError") Image mediaImage = imageProxy.getImage();
-                if(mediaImage != null){
-                    imagen = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-                }
-            }
-        }*/
-
-        //Ejecute el etiquetador de imagenes
-        etiquetadorImagenes.process(inputImage).addOnSuccessListener(new OnSuccessListener<List<ImageLabel>>() {
-            @Override
-            public void onSuccess(List<ImageLabel> imageLabels) {
-                System.out.println("Tarea completada correctamente");
-                etiquetasDeImagenes = imageLabels;
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                System.out.println("La tarea falló con excepciones");
-            }
-        });
-
-        //Obtener información sobre las entidades etiquetadas
-        for (ImageLabel label : etiquetasDeImagenes){
-            String text = label.getText();
-            float confidence = label.getConfidence();
-            int index = label.getIndex();
-        }
-    }
-
-    public void TercerMetodo(){
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-        cameraProviderFuture.addListener(()->{
-            try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                bindPreview(cameraProvider);
-            }
-            catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-                System.out.println("Hay este error : ---" + e.getMessage());
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-    void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
-        Preview preview = new Preview.Builder().build();
-
-        CameraSelector cameraSelector = new CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                .build();
-        preview.setSurfaceProvider(vistaPrevia.createSurfaceProvider());
-        Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+        Nota: ML Kit solo admite modelos de clasificación de imágenes personalizados. Aunque AutoML Vision permite el entrenamiento
+        de modelos de detección de objetos, estos no se pueden utilizar con ML Kit.
+        */
     }
 }
