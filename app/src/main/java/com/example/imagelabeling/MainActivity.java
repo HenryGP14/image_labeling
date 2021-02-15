@@ -16,7 +16,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.mlkit.common.model.CustomRemoteModel;
 import com.google.mlkit.common.model.LocalModel;
-import com.google.mlkit.linkfirebase.FirebaseModelSource;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
@@ -58,6 +57,10 @@ public class MainActivity extends AppCompatActivity {
     public void click_base_label_real_time(View view){
         Intent intent = new Intent(this, base_label_real_time_image.class);
         startActivity(intent);
+    }
+    public void onClickCUstomModelRT(View view){
+        Intent cambiarActivity = new Intent(this, CustomModel.class);
+        startActivity(cambiarActivity);
     }
     public void selecionar_img(View view) {
         resultConsult.setText(null);

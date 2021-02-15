@@ -34,46 +34,18 @@ public class CustomModel extends AppCompatActivity {
 
     InputImage imagen;
     List<ImageLabel> etiquetasDeImagenes;
+    PreviewView vistaPrevia;
+    ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_custom_model);
 
-        //Prepare el PreviewView para mostrar la camara
-        /*
-        Preview preview = new Preview.Builder().build();
-        PreviewView viewFinder = findViewById(R.id.view_finder);
+        vistaPrevia = findViewById(R.id.vistaPrevia);
+        TercerMetodo();
+        //PrimerMetodo();
 
-        // The use case is bound to an Android Lifecycle with the following code
-        Camera camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview);
-
-        // PreviewView creates a surface provider, using a Surface from a different
-        // kind of view will require you to implement your own surface provider.
-        preview.previewSurfaceProvider = viewFinder.getSurfaceProvider();
-        */
-
-        //Cargue el modelo
-        LocalModel localModel = new LocalModel.Builder().setAssetFilePath("mnasnet_1.3_224_1_metadata_1.tflite").build();
-
-        //Configure el etiquetador de imágenes
-        CustomImageLabelerOptions etqImagenesPersonaliada = new CustomImageLabelerOptions.Builder(localModel)
-                .setConfidenceThreshold(0.5f)
-                .setMaxResultCount(5)
-                .build();
-
-        ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(etqImagenesPersonaliada);
-
-        //Prepare la imagen de entrada
-        class AnalizadorFotograma implements ImageAnalysis.Analyzer{
-            @Override
-            public void analyze(@NonNull ImageProxy imageProxy) {
-                @SuppressLint("UnsafeExperimentalUsageError") Image mediaImage = imageProxy.getImage();
-                if(mediaImage != null){
-                    imagen = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-                }
-            }
-        }
         /*ImageAnalysis imageAnalysis =
             new ImageAnalysis.Builder()
                 .setTargetResolution(new Size(1280, 720))
@@ -89,9 +61,34 @@ public class CustomModel extends AppCompatActivity {
             });
 
         cameraProvider.bindToLifecycle((LifecycleOwner) this, cameraSelector, imageAnalysis, preview);*/
+        //SegundoMetodo();
+    }
+
+    private ImageCapture imageCapture;
+    public  void PrimerMetodo(){
+        //Cargue el modelo
+        LocalModel localModel = new LocalModel.Builder().setAssetFilePath("mnasnet_1.3_224_1_metadata_1.tflite").build();
+
+        //Configure el etiquetador de imágenes
+        CustomImageLabelerOptions etqImagenesPersonaliada = new CustomImageLabelerOptions.Builder(localModel)
+                .setConfidenceThreshold(0.5f)
+                .setMaxResultCount(5)
+                .build();
+
+        ImageLabeler etiquetadorImagenes = ImageLabeling.getClient(etqImagenesPersonaliada);
+
+        //Prepare la imagen de entrada
+        /*class AnalizadorFotograma implements ImageAnalysis.Analyzer{
+            @Override
+            public void analyze(@NonNull ImageProxy imageProxy) {
+                @SuppressLint("UnsafeExperimentalUsageError") Image mediaImage = imageProxy.getImage();
+                if(mediaImage != null){
+                    imagen = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+                }
+            }
+        }*/
 
         //Ejecute el etiquetador de imagenes
-
         etiquetadorImagenes.process(imagen).addOnSuccessListener(new OnSuccessListener<List<ImageLabel>>() {
             @Override
             public void onSuccess(List<ImageLabel> imageLabels) {
@@ -113,14 +110,8 @@ public class CustomModel extends AppCompatActivity {
             float confidence = label.getConfidence();
             int index = label.getIndex();
         }
-        /*
-        * for (ImageLabel label : labels) {
-    String text = label.getText();
-    float confidence = label.getConfidence();
-    int index = label.getIndex();
-}*/
     }
-    private ImageCapture imageCapture;
+
     public void SegundoMetodo(){
         PreviewView previewView = findViewById(R.id.vistaPrevia);
 
@@ -159,7 +150,31 @@ public class CustomModel extends AppCompatActivity {
                 // Currently no exceptions thrown. cameraProviderFuture.get()
                 // shouldn't block since the listener is being called, so no need to
                 // handle InterruptedException.
+                System.out.println("---Error:--- " + e.getMessage());
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    public void TercerMetodo(){
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+        cameraProviderFuture.addListener(()->{
+            try {
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                bindPreview(cameraProvider);
+            }
+            catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+                System.out.println("Hay este error : ---" + e.getMessage());
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+    void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
+        Preview preview = new Preview.Builder().build();
+
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .build();
+        preview.setSurfaceProvider(vistaPrevia.createSurfaceProvider());
+        Camera camera = cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, preview);
     }
 }
