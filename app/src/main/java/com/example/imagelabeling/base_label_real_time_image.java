@@ -44,7 +44,7 @@ public class base_label_real_time_image extends AppCompatActivity implements Sur
 
     Camera camera;
 
-    private String[] neededPermissions = new String[]{CAMERA, WRITE_EXTERNAL_STORAGE};
+    private final String[] neededPermissions = new String[]{CAMERA, WRITE_EXTERNAL_STORAGE};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
